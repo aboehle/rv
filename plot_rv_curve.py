@@ -1,4 +1,4 @@
-import radvel
+#import radvel
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -21,9 +21,9 @@ def calc_rv_curve(t, m_p, m_star, a_p, e, w, i, t0):
 
     # convert a_p to a and then a_p to p, angles to radians
     a = ( ((m_p*954.7919e-6) + m_star) / m_star )*a_p
-    print a, a_p
+    print(a, a_p)
     p = np.sqrt(a**3./(m_star+m_p*954.7919e-6))*365.
-    print p
+    print(p)
     w = w*(np.pi/180.)
     i = i*(np.pi/180.)
 
@@ -31,7 +31,7 @@ def calc_rv_curve(t, m_p, m_star, a_p, e, w, i, t0):
     f_mat = np.transpose(f)
 
     K = 28.4329*m_p*np.sin(i)*( (m_p*954.7919e-6)+m_star)**-0.5*(a**-0.5)/(np.sqrt(1-e**2.))
-    print K
+    print(K)
 
     # make matrix with width equal to len(t) and height equal to len(K) - i.e., number of different orbital parameter sets.  each row has a value K.
     #K_mat = np.transpose(np.matrix(K))
@@ -219,7 +219,7 @@ def get_mlimit_curve(star, a_arr = [], save_indv=True, save_avg=False, sample_e=
         a_baseline = ((t_baseline/365.)**2.*m_star)**(1/3.)
 
         a_arr = np.arange(a_baseline,a_baseline+14.,2.0)
-        print star, a_arr
+        print(star, a_arr)
 
     # create output dirs, check if output file names exist
     if save_indv or save_avg:
@@ -234,7 +234,7 @@ def get_mlimit_curve(star, a_arr = [], save_indv=True, save_avg=False, sample_e=
         if save_indv:
             # create star directory inside indv_samples/ if it doesn't exist
             if not os.path.exists(outdir_indv):
-                print 'Creating directory {:s}'.format(outdir_indv)
+                print('Creating directory {:s}'.format(outdir_indv))
                 os.system('mkdir {:s}'.format(outdir_indv))
     
         if save_avg:
@@ -243,7 +243,7 @@ def get_mlimit_curve(star, a_arr = [], save_indv=True, save_avg=False, sample_e=
                 ans = raw_input('Output file {:s} exists; overwrite? (y/[n])'.format(fileout))
 
                 if ans != 'y':
-                    print 'Halting mass limit calculation.'
+                    print('Halting mass limit calculation.')
                     return            
             
 
@@ -294,7 +294,7 @@ def calc_mlimit(star,sample_e=True,sample_i=True,rvsigma=1.0):
         elif not sample_e and not sample_i:
             masstab = np.loadtxt('/Users/annaboehle/research/data/rv/mlimits_tbaseline/indv_samples_e0/{:s}/{:s}_delvs_limmasses_{:02d}.txt'.format(star,star,idx))
         else:
-            print 'No random incl for e = 0 yet.'
+            print('No random incl for e = 0 yet.')
             return
                 
         masses = masstab[:,1]
@@ -310,7 +310,7 @@ def calc_mlimit(star,sample_e=True,sample_i=True,rvsigma=1.0):
         elif rvsigma == 3:
             cl = 0.9974
         else:
-            print 'Set rvsigma = 1, 2, or 3!'
+            print('Set rvsigma = 1, 2, or 3!')
         mass_medians[idx] = np.median(masses)
         masses_sorted = np.sort(masses)
         med_idx = np.argmin(np.abs(masses_sorted - mass_medians[idx]))
@@ -391,7 +391,7 @@ def add_random_i(star,sample_e=True,save=True):
             header2_new = header2.rstrip('\n') + '\tinclination (radians)'
                 
             # write out new table
-            print 'Saving new table to:',outDir+'/{:s}/{:s}'.format(star,filename.split('/')[-1])
+            print('Saving new table to:',outDir+'/{:s}/{:s}'.format(star,filename.split('/')[-1]))
             np.savetxt(outDir+'/{:s}/{:s}'.format(star,filename.split('/')[-1]), masstab_wincl,header=header1+header2_new)
             
 
@@ -424,12 +424,12 @@ def add_seps(star,max_a=10.,outdir='/Users/annaboehle/research/data/rv/mlimits_t
     delta_a = a_arr_old[1] - a_arr_old[0]
     
     a_arr=np.arange(max_a_orig+delta_a,dist*max_a+delta_a,delta_a)
-    print a_arr,'AU'
+    print(a_arr,'AU')
 
     # get file_start_idx
     indv_file_ls = glob.glob('{:s}/*txt'.format(outdir_indv))
     file_start_idx = len(indv_file_ls)
-    print file_start_idx
+    print(file_start_idx)
 
     if get_mlimit:
         get_mlimit_curve(star, a_arr = a_arr, save_indv=True, save_avg=False, sample_e=sample_e,
