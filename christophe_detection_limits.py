@@ -1,3 +1,9 @@
+"""
+This was code given to me (Anna Boehle) by Christophe Lovis at Geneva Obs.
+I used this code as the basis for my mass limits code.
+I used this code as the basis for my mass limits code.
+"""
+
 
 # WARNING: this script only works if there are no significant signals in the data!!!
 

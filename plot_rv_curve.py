@@ -1,23 +1,25 @@
-#import radvel
 import matplotlib.pyplot as plt
 import numpy as np
-import time
 from astropy.io import fits,ascii
 import os
 import glob
 
+
 def calc_rv_curve(t, m_p, m_star, a_p, e, w, i, t0):
-    '''
+    """
     Calculate RV curve given an array of times t (in JD).
 
-    Inputs:
-    float m_p: in jupiter masses
-    float m_star: in solar masses
-    a: semi-major axis of planet orbit in AU
-    e: eccentricity
-    w: argument of periapse in degrees
-    i: inclination in degrees
-    '''
+    :param t: array of times at which to calculate RV (in JD)
+    :param float m_p: in jupiter masses
+    :param float m_star: in solar masses
+    :param a: semi-major axis of planet orbit in AU
+    :param e: eccentricity
+    :param w: argument of periapse in degrees
+    :param i: inclination in degrees
+    :param t0: time of periastron passage in JD
+
+    :return rv_t: rv at the inputted times
+    """
 
     # convert a_p to a and then a_p to p, angles to radians
     a = ( ((m_p*954.7919e-6) + m_star) / m_star )*a_p
@@ -43,24 +45,24 @@ def calc_rv_curve(t, m_p, m_star, a_p, e, w, i, t0):
 
     return rv_t
 
+
 def plot_rv_curve(m_p, m_star, a, e, w, i):
-    '''
+    """
     Plot example RV curve given set of orbital parameters.  Plot the curve as RV versus time over 1 orbital period.
 
-    Inputs:
-    float m_p: in jupiter masses
-    float m_star: in solar masses
-    a: semi-major axis in AU
-    e: eccentricity
-    w: argument of periapse in degrees
-    i: inclination in degrees
-    '''
+    :param float m_p: in jupiter masses
+    :param float m_star: in solar masses
+    :param a: semi-major axis in AU
+    :param e: eccentricity
+    :param w: argument of periapse in degrees
+    :param i: inclination in degrees
+    """
 
     # convert a to p
     p = np.sqrt(a**3./m_star)*365.
     
     t0 = 2458196.0  # arbitrary t0 for plotting
-    #t = np.linspace(t0-p/2.,t0+p/2.,10000)
+    # t = np.linspace(t0-p/2.,t0+p/2.,10000)
     t = np.arange(t0-p/2.,t0+p/2.,0.1)
 
     rv_t = calc_rv_curve(t, m_p, m_star, a, e, w, i, t0)
@@ -69,21 +71,23 @@ def plot_rv_curve(m_p, m_star, a, e, w, i):
     plt.xlabel('Time from To (years)')
     plt.ylabel('RV (m/s)')
     
-    
 
-    
 def get_max_delv(tau, m_p, m_star, a, e, w, i, plot=False):
 
-    '''
-    Inputs:
-    float tau: time baseline in days
-    float m_p: in jupiter masses
-    float m_star: in solar masses
-    a: semi-major axis in AU
-    e: eccentricity
-    w: argument of periapse in degrees
-    i: inclination in degrees
-    '''
+    """
+    Get the maximum delta radial velocity over a given time baseline.
+    Checks the time baseline over the entire orbit.
+
+    :param float tau: time baseline in days
+    :param float m_p: in jupiter masses
+    :param float m_star: in solar masses
+    :param a: semi-major axis in AU
+    :param e: eccentricity
+    :param w: argument of periapse in degrees
+    :param i: inclination in degrees
+
+    :return max_delv: maximum RV change within the given time baseline
+    """
 
     # convert a to p
     p = np.sqrt(a**3./m_star)*365.
@@ -129,13 +133,29 @@ def get_max_delv(tau, m_p, m_star, a, e, w, i, plot=False):
 
 
 def get_delv_timewindow(tau, m_p, m_star, a, e, w, i, t0, start_time, plot=False):
+    """
+    Get the maximum delta radial velocity over a given time baseline (tau),
+    starting at start_time.
+
+    :param float tau: time baseline in days
+    :param float m_p: in jupiter masses
+    :param float m_star: in solar masses
+    :param a: semi-major axis in AU
+    :param e: eccentricity
+    :param w: argument of periapse in degrees
+    :param i: inclination in degrees
+    :param t0: time of periastron passage in JD
+    :param start_time: start time of the time window over which to determine max_delv
+
+    :return: max_delv: maximum delta RV
+    """
 
     # convert a to p
     p = np.sqrt(a**3./m_star)*365.
 
     t = np.arange(start_time,start_time+tau+0.01,0.01)
 
-    rv_t = calc_rv_curve(t, m_p, m_star, a, e, w, i, t0)   # can I get max/min with a derivative instead?
+    rv_t = calc_rv_curve(t, m_p, m_star, a, e, w, i, t0)
 
     max_delv = np.max(rv_t) - np.min(rv_t)
     #max_delv_times = [t[np.argmin(rv_t)],t[np.argmax(rv_t)]]
@@ -146,10 +166,33 @@ def get_delv_timewindow(tau, m_p, m_star, a, e, w, i, t0, start_time, plot=False
         plt.axhline(np.min(rv_t))
         plt.show()
     
-    return max_delv#, max_delv_times
+    return max_delv #, max_delv_times
 
 
 def get_mlimit_a(t_baseline, rv_std, m_star, a=10, plot=False, sample_e=True):
+    """
+    Get the mass limit for given semi-major axis for an RV data set with
+    time baseline t_baseline and standard deviation rv_std.
+    The mass limit corresponds to the mass that sets the maximum delta RV in the inputted time baseline
+    equal to the 1 times the rv standard deviation.
+    This is for cases that the orbital periods are too long compared to the time baseline
+    for the signal to be periodic in the RV data.
+
+    Inclination is fixed to 90 deg so the output is minimum mass limit.
+    Other orbital parameters are sampled randomly (w,
+    e if sample_e = True, phase of the orbit via start_time).
+
+    :param t_baseline: time baseline of RV data set in days
+    :param rv_std: standard deviation of RV data set (in m/s)
+    :param m_star: mass of star in solar masses
+    :param a: semi-major axis of interest in AU
+    :param plot: if True, then plot the results
+    :param sample_e: if True, then sample the eccentricity orbital parameter
+    per the distribution in Kipping et al. from RV planet population; otherwise e = 0
+
+    :return: (maximum delta vels, array of limiting planet masses for all orbits,
+             w distribution, e distribution, average of limiting mass)
+    """
 
     #start_time = time.time()
 
@@ -181,7 +224,7 @@ def get_mlimit_a(t_baseline, rv_std, m_star, a=10, plot=False, sample_e=True):
     # get max delta v for m_p sin(i) = 1 (m_p = 1, i = 90)
     #max_delvs = np.zeros(num_samples)
     #for o in range(num_samples):
-    
+
     #    max_delvs[o] = get_max_delv(t_baseline, 1, m_star, a, e[o], w[o], i=90)
 
     #end_time = time.time()
@@ -195,11 +238,29 @@ def get_mlimit_a(t_baseline, rv_std, m_star, a=10, plot=False, sample_e=True):
         plt.hist(scale_fac)
         plt.show()
 
+    # convert velocity scale factor to corresponding planet mass
     m_p_lim = get_mplim_from_scalefac(scale_fac,m_star)
 
     return max_delvs, m_p_lim, w, e, start_time, np.average(m_p_lim)
 
-def get_mlimit_curve(star, a_arr = [], save_indv=True, save_avg=False, sample_e=True, rvinfo_filename = '/Users/annaboehle/research/proposals/jwst_cycle1/targets/nearest_solar_dist_age.txt', outdir='/Users/annaboehle/research/data/rv/mlimits_tbaseline/', file_start_idx=0):
+
+def get_mlimit_curve(star, a_arr = [], save_indv=True, save_avg=False, sample_e=True,
+                     rvinfo_filename = '/Users/annaboehle/research/proposals/jwst_cycle1/targets/nearest_solar_dist_age.txt',
+                     outdir='/Users/annaboehle/research/data/rv/mlimits_tbaseline/', file_start_idx=0):
+    """
+
+    Get RV mass limit for a range of semi-major axes.
+
+    :param star: name of the star (whose details are in the rvinfo_filename file)
+    :param a_arr: array of semi-major axes in AU
+    :param save_indv: if True, individual mass limits for the sampled orbital parameters are saved for every semi-major axis (in a separate file)
+    :param save_avg: if True, the average mass limit over the sampled orbital parameters are saved for each semi-major axis
+    :param sample_e: if True, then sample the eccentricity orbital parameter
+    :param rvinfo_filename: file with star names and RV info (time baseline of RV observations, rv standard deviation, and mass of star)
+    :param outdir: output directory for files
+    :param file_start_idx: index of first individual output file (only used if save_indv = True)
+    :return:
+    """
 
     # values for tau ceti for testing
     #t_baseline = 6998  # days
@@ -275,6 +336,16 @@ def get_mlimit_curve(star, a_arr = [], save_indv=True, save_avg=False, sample_e=
     
         
 def calc_mlimit(star,sample_e=True,sample_i=True,rvsigma=1.0):
+    """
+    Using the average and the individual mass limits from get_mlimit_curve,
+    get the mass limits for a given confidence level (1, 2, or 3 sigma).
+
+    :param star: star name
+    :param sample_e: set True if this was true in other function
+    :param sample_i: set True if this was true in other function
+    :param rvsigma: 1, 2, or 3 sigma to set the confidence level
+    :return:
+    """
 
     # get average mass limits:
     rvtab = np.loadtxt('/Users/annaboehle/research/data/rv/mlimits_tbaseline/{:s}_rvlim.txt'.format(star))
@@ -319,10 +390,11 @@ def calc_mlimit(star,sample_e=True,sample_i=True,rvsigma=1.0):
         mass_mins[idx] = masses_sorted[med_idx-num_cl]
         mass_maxs[idx] = masses_sorted[med_idx+num_cl]
 
-
     return a_rv, mass_medians, mass_mins, mass_maxs
 
-def plot_rv_mlimit(star, sample_e=True, rvsigma=1.0, save=False, filename='', rvinfo_filename = '/Users/annaboehle/research/proposals/jwst_cycle1/targets/nearest_solar_dist_age.txt'):
+
+def plot_rv_mlimit(star, sample_e=True, rvsigma=1.0, save=False, filename='',
+                   rvinfo_filename = '/Users/annaboehle/research/proposals/jwst_cycle1/targets/nearest_solar_dist_age.txt'):
 
     a_rv, mass_medians, mass_mins, mass_maxs = calc_mlimit(star, sample_e, rvsigma)
 
@@ -356,6 +428,7 @@ def plot_rv_mlimit(star, sample_e=True, rvsigma=1.0, save=False, filename='', rv
             filename = '{:s}_rvlim'
         plt.savefig(filename + '.png')
         plt.savefig(filename + '.eps')        
+
 
 def add_random_i(star,sample_e=True,save=True):
     '''
@@ -445,6 +518,7 @@ def add_seps(star,max_a=10.,outdir='/Users/annaboehle/research/data/rv/mlimits_t
 
         np.savetxt(fileout,fileout_tab_new)
 
+
 def get_mlimit_curve_allstarttimes(star, a_arr = [], rvinfo_filename = '/Users/annaboehle/research/proposals/jwst_cycle1/targets/nearest_solar_dist_age.txt',
                                    outdir='/Users/annaboehle/research/data/rv/mlimits_tbaseline/'):
 
@@ -523,7 +597,6 @@ def get_mlimit_a_allstarttimes(t_baseline, rv_std, m_star, a=10, plot=False):
             
             plt.axhline(5*rv_std,linestyle='dotted',color='black')
             plt.axhline(0,linestyle='dotted',color='black')
-
 
     return np.max(m_p_lim) #np.max(scale_fac)
 

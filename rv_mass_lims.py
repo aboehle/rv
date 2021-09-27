@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from astropy.timeseries import LombScargle
-import astropy.constants as const
 
 from orbits import kepler_py3 as k
 
@@ -11,7 +10,7 @@ def generate_obs_times(dt=365/2.,
                        num_meas=25,
                        time_std=1.0,
                        plot=False):
-    '''
+    """
     Generate observing times that are roughly evenly spaced over a given time range.
 
     :param dt: time span of observations (days)
@@ -19,7 +18,7 @@ def generate_obs_times(dt=365/2.,
     :param time_std: std of random gaussian noise added to the regularly spaced observations
     :param plot: if True, plot test plots
     :return: array of observing times
-    '''
+    """
 
     # Get evenly spaced observing times
     obs_times = np.linspace(0,
@@ -60,12 +59,14 @@ def generate_obs_times(dt=365/2.,
 
 def generate_rv_data(obs_times,
                      rv_std):
-    '''
+    """
+    Generate RV data for no planet signal
+    at the inputted times and with the inputted noise.
 
     :param obs_times: times of RV measurements (days)
     :param rv_std: noise of the generated RV measurements (m/s)
     :return:
-    '''
+    """
 
     # ## Generate RV data
     rv_data = np.random.normal(loc=0,
@@ -82,17 +83,22 @@ def gls_fap(obs_times,
             max_f = None,
             samples_per_peak=1,
             plot=False):
-    '''
-    Generate a fake RV data set and determine the 99% false alarm probability (FAP)
+    """
+    Determine the 99% false alarm probability (FAP) for the inputted RV data set
     for periodic signals using the generalized Lomb-Scargle Periodogram.
     Any signals with power > the 99% FAP would be detected.
 
     :param obs_times: times of RV measurements (days)
     :param rv_data: RV measurements (m/s)
     :param n_bootstrap: number of bootstrap trials to determine 99% FAP
+    :param f_data: values of frequencies to test (if not give, code determines these automatically)
+    :param min_f: minimum frequency, otherwise code uses hardcoded value
+    :param min_f: maximum frequency, otherwise code uses hardcoded value
+    :param samples_per_peak: GLS parameter, number of points computed per peak in periodogram
     :param plot: if True, do diagnostic plots
+
     :return: (array of tested frequencies, array of FAP for 99%)
-    '''
+    """
 
 
     # ## Bootstrap RV data
@@ -180,12 +186,29 @@ def gls_fap(obs_times,
 
     return f_data, fap_99
 
+
 def mass_limits(obs_times,
                 rv_data,
                 f_data,
                 fap_99,
                 m_star,
                 plot=False):
+    """
+    Get the mass limits for the RV data set given the previously computed 99% FAP.
+    Loops over 12 evenly spaced orbital phases and returns the mass limits for all of them.
+    You can chose to take the average or the maximum mass limit.
+
+    The code assumes circular orbits (a common assumption for RV mass limits,
+    from what I understand).
+
+    :param obs_times: times of RV measurements (days)
+    :param rv_data: RV measurements (m/s)
+    :param f_data: array of tested frequencies (output of gls_fap)
+    :param fap_99: array of 99% FAP
+    :param m_star: mass of star in solar masses
+    :param plot: if True, then the results are plotted
+    :return:
+    """
 
     f_idx_arr  = np.arange(0,len(f_data),dtype=int)
 
@@ -263,69 +286,3 @@ def mass_limits(obs_times,
     mlimits_99 = (k_fap_99/28.4329) * (m_star ** (2 / 3.)) * (((1 / np.reshape(f_data, (len(f_data), 1))) / 365.) ** (1 / 3.))
 
     return(mlimits_99)
-
-    # convert K to mass of planet
-
-'''
-# Take Zechmeister et al. 2009 approach and consider data as noise.
-
-# In[364]:
-
-
-rv_simplusdata = rv_sim + rv_data
-
-
-# In[400]:
-
-
-# L-S at single frequency!
-p_sim=LombScargle(obs_times,rv_simplusdata).power(f_data[P_test_idx])
-
-
-# In[399]:
-
-
-print(p_sim)
-print(fap_99[P_test_idx])
-
-
-# In[391]:
-
-
-plt.plot(obs_times,rv_simplusdata,marker='.',linestyle='none')
-
-
-# In[401]:
-
-
-#plt.plot(f_sim,p_sim,color='black')
-#plt.plot(f_data,fap_99,linestyle='dotted',color='red')
-
-
-# RV semi-amplitude formula:
-# 
-# K(m_p, m_star, P) -> so need to assume m_star and can solve this for m_p min!
-
-# In[387]:
-
-
-m_p = 5*(const.M_earth/const.M_jup)
-K = 28.4329*(m_p)*((m_p/(const.M_sun/const.M_jup)).value + m_star)**(-2./3)*(P_test/365.)**(-1./3)
-print(K)
-
-
-# For a range of frequencies (for which you have the FAP already):<br>
-# For a 12 evenly spaces orbital phases (w):
-# 
-# - inject planet with given K
-# - add to actual data to simulate noise
-# - calculate power in that frequency in simulated data with GLS
-# - iterate in fixed steps until 99% FAP is reached
-# <br>
-# <br>
-# - average over all phases
-# - convert K to m_p for each frequency
-
-# In[ ]:
-
-'''

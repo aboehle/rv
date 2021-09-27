@@ -6,11 +6,21 @@ import matplotlib as mpl
 import os
 
 
-
 def compute_acc(plx,mua,mud):                                      # [mas], [mas/yr]
-    '''
-    Code from Christophe Lovis (via email on 27/5/19)
-    '''
+    """
+    Code to compute the secular acceleration from Christophe Lovis (via email on 27/5/19).
+
+    This code should no longer be needed in the more recent versions of DACE,
+    since the secular acceleration correction is applied automatically.
+    But potentially worth double checking that the correction is applied correctly (lol)
+    if you see a linear trend in the RV data.
+
+    :param plx: parallax of star (milliarcsec)
+    :param mua: proper motion in R.A. (milliarcsec/year)
+    :param mud: proper motion in declination (milliarcsec/year)
+    :return: secular acceleration (meters/sec/day)
+    """
+
 
     d = 1000./plx*3.08567758e16                                     # [m]
     mu = np.sqrt(mua**2+mud**2)/1000./3600.*2*np.pi/360./86400./365.256   # [radians/s]
@@ -18,6 +28,15 @@ def compute_acc(plx,mua,mud):                                      # [mas], [mas
 
 
 def calibrate_offsets_fulloverlap(star,save=False,plot=True):
+    """
+    Calibrates RV offsets between different instruments
+    for cases where there is some overlap between the data sets.
+
+    :param star: name of star from Boehle et al. 2019 paper sample
+    :param save: if True, write out the calibrated data sets
+    :param plot: if True, plot the calibration process
+    :return: None
+    """
 
     if plot:
         inst_params = {'COR98': [plt.rcParams['axes.prop_cycle'].by_key()['color'][3], '^', 5.0],
@@ -200,6 +219,16 @@ def calibrate_offsets_fulloverlap(star,save=False,plot=True):
 
 
 def calibrate_offsets(star,save=False,plot=True):
+    """
+    Calibrates RV offsets between different instruments.
+    Includes treatments of the two stars that had no overlap
+    between HARPS03 and HARPS15, so a pre-determined offset was applied.
+
+    :param star: name of star from Boehle et al. 2019 paper sample
+    :param save: if True, write out the calibrated data sets
+    :param plot: if True, plot the calibration process
+    :return: None
+    """
 
     if plot:
         inst_params = {'COR98': [plt.rcParams['axes.prop_cycle'].by_key()['color'][3], '^', 5.0],
@@ -282,7 +311,7 @@ def calibrate_offsets(star,save=False,plot=True):
             inst_ls.pop(idx_harps15)
             output_fname.pop(idx_harps15)
 
-        # here also merge the two data sets so they are treated the same? check if this is equivalent to what I did before
+        # here also merge the two data sets so they are treated the same
 
         if star == 'kapteyns' and plot:
             idx_harps15 = np.where(np.array(inst_ls) == 'HARPS15')[0][0]
